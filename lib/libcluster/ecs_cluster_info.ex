@@ -82,10 +82,9 @@ defmodule Cluster.EcsClusterInfo do
         #  {:ok, arns_ports} <- extract_arns_ports(desc_task_body, container_port),
         #  {:ok, ips_ports} <- extract_ips_ports(cluster_name, arns_ports, region) do
       # {:ok,
-      port = 4369
       {:ok,
         hosts
-        |> Enum.map(&({:"#{app_prefix}@#{&1}", {&1, port}}))
+        |> Enum.map(&({:"#{app_prefix}@#{&1}", {&1, container_port}}))
         |> Map.new()
       }
 
