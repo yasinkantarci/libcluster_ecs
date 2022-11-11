@@ -9,7 +9,7 @@ defmodule Cluster.EPMD do
   end
 
   def register_node(name, port, family) do
-    :erl_epmd.register_node(name, port, family)
+    :erl_epmd.register_node(name, port, :inet_tcp)
   end
 
   def listen_port_please(_name, _hostname) do
@@ -20,7 +20,7 @@ defmodule Cluster.EPMD do
   @spec address_please(charlist(), charlist(), atom()) ::
           {:ok, :inet.ip_address(), integer(), integer()} | {:error, term()}
   def address_please(name, hostname, family) do
-    nodename = :"#{name}@#{hostname}.eu-central-1.compute.internal"
+    nodename = :"#{name}@#{hostname}"
 
     case EcsClusterInfo.get_nodes() do
       %{^nodename => {ip, port}} -> {:ok, ip, port, @magic_version}
