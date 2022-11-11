@@ -24,6 +24,7 @@ defmodule Cluster.EcsClusterInfo do
 
   @impl true
   def init(config) do
+    IO.inspect(Node.self(), label: "Node.self")
     set_refresh()
 
     state = set_config(config, %{})
@@ -77,12 +78,17 @@ defmodule Cluster.EcsClusterInfo do
          {:ok, task_arns} <-
            get_tasks_for_services(cluster_name, region, service_arns, service_name),
          {:ok, desc_task_body} <- describe_tasks(cluster_name, task_arns, region),
-         {:ok, arns_ports} <- extract_arns_ports(desc_task_body, container_port),
-         {:ok, ips_ports} <- extract_ips_ports(cluster_name, arns_ports, region) do
+         {:ok, hosts} <- extract_hosts(desc_task_body) do
+        #  {:ok, arns_ports} <- extract_arns_ports(desc_task_body, container_port),
+        #  {:ok, ips_ports} <- extract_ips_ports(cluster_name, arns_ports, region) do
+      # {:ok,
+      port = 4369
       {:ok,
-       Map.new(ips_ports, fn {runtime_id, ip, port} ->
-         {runtime_id_to_nodename(runtime_id, app_prefix), {ip, port}}
-       end)}
+        hosts
+        |> Enum.map(&({:"#{app_prefix}@#{&1}", {&1, port}}))
+        |> Map.new()
+      }
+
     else
       err ->
         Logger.warn(fn -> "Error #{inspect(err)} while determining nodes in cluster via ECS" end)
@@ -314,4 +320,30 @@ defmodule Cluster.EcsClusterInfo do
   defp runtime_id_to_nodename(runtime_id, app_prefix) do
     :"#{app_prefix}@#{runtime_id}"
   end
+
+  defp extract_ips(%{"tasks" => tasks}) do
+    ips =
+      tasks
+      |> Enum.flat_map(fn(t) -> Map.get(t, "containers", []) end)
+      |> Enum.flat_map(fn(c) -> Map.get(c, "networkInterfaces", []) end)
+      |> Enum.map(fn(ni) -> Map.get(ni, "privateIpv4Address") end)
+      |> Enum.reject(&is_nil/1)
+    {:ok, ips}
+  end
+
+  defp extract_ips(_), do: {:error, "can't extract ips"}
+
+   defp extract_hosts(%{"tasks" => tasks}) do
+   hosts =
+     tasks
+     |> Stream.flat_map(fn(t) -> Map.get(t, "attachments", []) end)
+     |> Stream.flat_map(fn(c) -> Map.get(c, "details", []) end)
+     |> Stream.filter(fn d -> Map.get(d, "name") == "privateDnsName" end)
+     |> Stream.map(fn h -> Map.get(h, "value") end)
+     |> Enum.into([])
+   {:ok, hosts}
+   end
+
+  defp extract_hosts(_), do: {:error, "can't extract host"}
+
 end
