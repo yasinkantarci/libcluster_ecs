@@ -9,9 +9,6 @@ defmodule Cluster.EPMD do
   end
 
   def register_node(name, port, family) do
-    IO.inspect(name, label: "name")
-    IO.inspect(port, label: "port")
-    IO.inspect(family, label: "family")
     :erl_epmd.register_node(name, port, family)
   end
 
@@ -24,7 +21,6 @@ defmodule Cluster.EPMD do
           {:ok, :inet.ip_address(), integer(), integer()} | {:error, term()}
   def address_please(name, hostname, family) do
     nodename = :"#{name}@#{hostname}.#{family}"
-    IO.inspect(nodename, label: "nodename")
 
     case EcsClusterInfo.get_nodes() do
       %{^nodename => {ip, port}} -> {:ok, ip, port, @magic_version}
