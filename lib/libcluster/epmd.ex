@@ -20,13 +20,12 @@ defmodule Cluster.EPMD do
   @spec address_please(charlist(), charlist(), atom()) ::
           {:ok, :inet.ip_address(), integer(), integer()} | {:error, term()}
   def address_please(name, hostname, family) do
-    nodename = :"#{name}@#{hostname}.eu-central-1.compute.internal"
+    nodename = :"#{name}@#{hostname}"
 
-    {:ok, nodename}
-    # case EcsClusterInfo.get_nodes() do
-    #   %{^nodename => {ip, port}} -> {:ok, ip, port, @magic_version}
-    #   _ -> :erl_epmd.address_please(name, hostname, family)
-    # end
+    case EcsClusterInfo.get_nodes() do
+      %{^nodename => {ip, port}} -> {:ok, ip, port, @magic_version}
+      _ -> :erl_epmd.address_please(name, hostname, family)
+    end
   end
 
   def names(hostname) do
